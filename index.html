@@ -3,9 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>المساعد البصري الذكي - محلي بالكامل</title>
-    <!-- مكتبة Tesseract.js لقراءة النصوص محلياً -->
-    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    <title>المساعد البصري الذكي - مدعوم بـ Groq AI</title>
     <style>
         :root {
             --bg-color: #ffffff;
@@ -52,10 +50,41 @@
             text-align: center;
             color: #666;
             font-size: 0.95rem;
-            margin-bottom: 25px;
+            margin-bottom: 20px;
         }
 
-        /* طرق الإدخال (كاميرا أو رفع ملف) */
+        /* إعدادات المفتاح الأمني */
+        .settings-box {
+            background: var(--gray-light);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 12px 15px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .settings-box input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            outline: none;
+            font-size: 0.9rem;
+        }
+
+        .settings-box button {
+            padding: 8px 15px;
+            background: var(--accent-color);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        /* طرق الإدخال */
         .mode-selector {
             display: flex;
             gap: 10px;
@@ -80,7 +109,7 @@
             border-color: var(--accent-color);
         }
 
-        /* قسم الكاميرا */
+        /* الكاميرا */
         .camera-wrapper {
             position: relative;
             width: 100%;
@@ -98,7 +127,6 @@
             object-fit: cover;
         }
 
-        /* زر الالتقاط الدائري الفخم */
         .capture-btn-container {
             position: absolute;
             bottom: 20px;
@@ -120,11 +148,6 @@
             align-items: center;
             cursor: pointer;
             box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-            transition: transform 0.1s ease;
-        }
-
-        .circular-capture:active {
-            transform: translateX(-50%) scale(0.92);
         }
 
         .inner-circle {
@@ -134,7 +157,6 @@
             background: #fff;
         }
 
-        /* رفع الملفات التقليدي */
         .upload-section {
             display: block;
             border: 2px dashed #dcdcdc;
@@ -143,19 +165,13 @@
             text-align: center;
             cursor: pointer;
             margin-bottom: 20px;
-            transition: 0.2s;
             background: var(--gray-light);
-        }
-
-        .upload-section:hover {
-            border-color: var(--accent-color);
         }
 
         input[type="file"] {
             display: none;
         }
 
-        /* المعاينة */
         .preview-box {
             position: relative;
             max-width: 100%;
@@ -175,7 +191,6 @@
             margin: 0 auto;
         }
 
-        /* أزرار العمليات الثلاثة */
         .action-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -192,7 +207,6 @@
             font-size: 0.9rem;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.2s;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -204,7 +218,6 @@
             border-color: var(--accent-color);
         }
 
-        /* صندوق النصوص الموضح والقابل للتعديل */
         .editor-section {
             margin-bottom: 20px;
         }
@@ -214,9 +227,6 @@
             font-weight: 600;
             margin-bottom: 8px;
             color: #333;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
         }
 
         textarea.text-output {
@@ -225,29 +235,20 @@
             border: 1px solid var(--border-color);
             border-radius: 12px;
             padding: 15px;
-            min-height: 110px;
+            min-height: 90px;
             font-size: 1.05rem;
             line-height: 1.6;
             font-family: inherit;
-            color: var(--text-color);
-            resize: vertical;
             box-sizing: border-box;
             outline: none;
-            transition: border-color 0.2s;
         }
 
-        textarea.text-output:focus {
-            border-color: var(--accent-color);
-            background: #fff;
-        }
-
-        /* صندوق نتائج الحل أو الترجمة */
         .result-box {
             background: var(--gray-light);
             border: 1px solid var(--border-color);
             border-radius: 12px;
             padding: 15px;
-            min-height: 90px;
+            min-height: 80px;
             font-size: 1.05rem;
             line-height: 1.6;
             white-space: pre-wrap;
@@ -269,74 +270,80 @@
 
 <div class="app-container">
     <h2>المساعد البصري الذكي</h2>
-    <p class="subtitle">تصوير، توضيح، تعديل، وترجمة وحل بالذكاء الاصطناعي</p>
+    <p class="subtitle">تصوير، تحليل، ترجمة، وحل بالذكاء الاصطناعي</p>
 
-    <!-- أزرار تبديل وضع الإدخال -->
+    <!-- إعداد مفتاح API آمن (يُحفظ محلياً في متصفحك فقط) -->
+    <div class="settings-box">
+        <input type="password" id="apiKeyInput" placeholder="أدخل مفتاح Groq API هنا...">
+        <button onclick="saveApiKey()">حفظ المفتاح</button>
+    </div>
+
     <div class="mode-selector">
-        <button class="mode-btn active" id="cameraModeBtn" onclick="switchMode('camera')">📷 الكاميرا المباشرة</button>
+        <button class="mode-btn active" id="cameraModeBtn" onclick="switchMode('camera')">📷 الكاميرا</button>
         <button class="mode-btn" id="uploadModeBtn" onclick="switchMode('upload')">📁 رفع صورة</button>
     </div>
 
-    <!-- نافذة الكاميرا الحية -->
     <div class="camera-wrapper" id="cameraWrapper">
         <video id="videoFeed" autoplay playsinline></video>
         <div class="capture-btn-container">
-            <div class="circular-capture" onclick="captureImage()" title="التقاط صورة">
+            <div class="circular-capture" onclick="captureImage()">
                 <div class="inner-circle"></div>
             </div>
         </div>
     </div>
 
-    <!-- منطقة رفع الصورة -->
     <label class="upload-section" id="uploadSection" for="imageInput" style="display: none;">
-        <span>📁 اضغط هنا لاختيار صورة من جهازك</span>
+        <span>📁 اختر صورة من جهازك</span>
         <input type="file" id="imageInput" accept="image/*">
     </label>
 
-    <!-- معاينة الصورة الطبيعية الواضحة للمستخدم -->
     <div class="preview-box" id="previewBox">
-        <img id="imagePreview" alt="معاينة الصورة الطبيعية">
+        <img id="imagePreview" alt="معاينة">
     </div>
 
-    <!-- الأزرار الثلاثة الفعالة -->
     <div class="action-grid">
-        <button class="action-btn" id="ocrBtn" onclick="extractTextOnly()">
-            <span>🔍</span> توضيح الخط
-        </button>
-        <button class="action-btn" id="translateBtn" onclick="processAction('translate')">
-            <span>🌐</span> ترجمة النصوص
-        </button>
-        <button class="action-btn" id="solveBtn" onclick="processAction('solve')">
-            <span>💡</span> حل الأسئلة
-        </button>
+        <button class="action-btn" onclick="handleOCR()"><span>🔍</span> توضيح الخط</button>
+        <button class="action-btn" onclick="handleTranslate()"><span>🌐</span> ترجمة</button>
+        <button class="action-btn" onclick="handleSolve()"><span>💡</span> حل الأسئلة</button>
     </div>
 
-    <!-- حالة النظام -->
-    <div class="status-badge" id="statusText">جاهز. التقط صورة بالكاميرا أو ارفع ملفاً لبدء العمل.</div>
+    <div class="status-badge" id="statusText">جاهز. أدخل مفتاحك واالتقط صورة للبدء.</div>
 
-    <!-- مربع النص الموضح (قابل للتعديل اليدوي مباشرة) -->
     <div class="editor-section">
-        <div class="section-label">
-            <span>✏️ النص الموضح (يمكنك تعديله قبل الحل أو الترجمة):</span>
-        </div>
-        <textarea id="editableText" class="text-output" placeholder="النص المستخرج سيظهر هنا، ويمكنك تعديل أي حرف غير واضح مباشرة..."></textarea>
+        <div class="section-label">✏️ النص المستخرج:</div>
+        <textarea id="editableText" class="text-output" placeholder="النص سيظهر هنا..."></textarea>
     </div>
 
-    <!-- مربع عرض النتائج النهائية (الحل أو الترجمة) -->
     <div class="editor-section">
-        <div class="section-label">
-            <span>📋 النتيجة النهائية (حل أو ترجمة):</span>
-        </div>
+        <div class="section-label">📋 النتائج:</div>
         <div class="result-box" id="resultText">النتائج ستظهر هنا...</div>
     </div>
 </div>
 
-<!-- مخفي لمعالجة الصور -->
 <canvas id="canvasElement"></canvas>
 
 <script>
     let videoStream = null;
-    let originalBlob = null; // الصورة الطبيعية للمعاينة وللـ OCR
+    let currentImageBase64 = null;
+
+    // استرجاع المفتاح المحفوظ مسبقاً في المتصفح إن وجد
+    window.addEventListener('DOMContentLoaded', () => {
+        const savedKey = localStorage.getItem('groq_api_key');
+        if (savedKey) {
+            document.getElementById('apiKeyInput').value = savedKey;
+        }
+        switchMode('camera');
+    });
+
+    function saveApiKey() {
+        const key = document.getElementById('apiKeyInput').value.trim();
+        if (key) {
+            localStorage.setItem('groq_api_key', key);
+            alert("تم حفظ مفتاح API في متصفحك بشكل آمن!");
+        } else {
+            alert("يرجى إدخال مفتاح صحيح.");
+        }
+    }
 
     const cameraWrapper = document.getElementById('cameraWrapper');
     const uploadSection = document.getElementById('uploadSection');
@@ -371,7 +378,7 @@
             videoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
             videoFeed.srcObject = videoStream;
         } catch (err) {
-            statusText.textContent = "⚠️ تعذر الوصول للكاميرا. يرجى استخدام وضع (رفع صورة).";
+            statusText.textContent = "⚠️ تعذر الوصول للكاميرا، استخدم رفع صورة.";
             switchMode('upload');
         }
     }
@@ -383,45 +390,27 @@
         }
     }
 
-    // التقاط وحفظ الصورة الطبيعية للمعاينة
-    function captureAndSaveNormalImage(sourceImage) {
-        let width = sourceImage.videoWidth || sourceImage.naturalWidth || sourceImage.width || 640;
-        let height = sourceImage.videoHeight || sourceImage.naturalHeight || sourceImage.height || 480;
+    function processImageSource(sourceImage) {
+        let width = sourceImage.videoWidth || sourceImage.naturalWidth || sourceImage.width || 800;
+        let height = sourceImage.videoHeight || sourceImage.naturalHeight || sourceImage.height || 600;
         
-        if (!width || !height) {
-            statusText.textContent = "⚠️ الكاميرا لم تجهز بالكامل بعد، حاول مجدداً.";
-            return;
-        }
-
         const ctx = canvasElement.getContext('2d');
         canvasElement.width = width;
         canvasElement.height = height;
-        
-        try {
-            ctx.drawImage(sourceImage, 0, 0, width, height);
-        } catch (e) {
-            console.error(e);
-        }
+        ctx.drawImage(sourceImage, 0, 0, width, height);
 
-        canvasElement.toBlob((blob) => {
-            if (!blob) return;
-            originalBlob = blob;
-            const imageUrl = URL.createObjectURL(blob);
-            imagePreview.src = imageUrl;
-            previewBox.style.display = 'block';
-            
-            statusText.textContent = "✅ تم التقاط الصورة بوضوح تام! اضغط على (توضيح الخط) لقراءتها.";
-            editableText.value = "";
-            resultText.textContent = "النتائج ستظهر هنا...";
-        }, 'image/jpeg', 0.95);
+        currentImageBase64 = canvasElement.toDataURL('image/jpeg', 0.9);
+        imagePreview.src = currentImageBase64;
+        previewBox.style.display = 'block';
+        
+        statusText.textContent = "✅ تم التقاط الصورة! اختر إحدى العمليات بالأسفل:";
+        editableText.value = "";
+        resultText.textContent = "النتائج ستظهر هنا...";
     }
 
     function captureImage() {
-        if (!videoStream) {
-            statusText.textContent = "⚠️ الكاميرا غير متوفرة.";
-            return;
-        }
-        captureAndSaveNormalImage(videoFeed);
+        if (!videoStream) return;
+        processImageSource(videoFeed);
     }
 
     imageInput.addEventListener('change', (e) => {
@@ -430,128 +419,89 @@
             const reader = new FileReader();
             reader.onload = function(event) {
                 const img = new Image();
-                img.onload = function() {
-                    captureAndSaveNormalImage(img);
-                }
+                img.onload = () => processImageSource(img);
                 img.src = event.target.result;
             }
             reader.readAsDataURL(file);
         }
     });
 
-    // استخراج النص (مع معالجة خلفية محسنة للـ OCR فقط دون تشويه صورة المعاينة)
-    async function extractTextOnly() {
-        if (!originalBlob) {
-            statusText.textContent = "⚠️ تنبيه: يرجى التقاط صورة أو رفع ملف أولاً!";
-            return;
+    async function callGroqVision(promptText) {
+        const apiKey = localStorage.getItem('groq_api_key') || document.getElementById('apiKeyInput').value.trim();
+        if (!apiKey) {
+            alert("يرجى إدخال وحفظ مفتاح Groq API في الأعلى أولاً!");
+            return null;
+        }
+        if (!currentImageBase64) {
+            statusText.textContent = "⚠️ يرجى التقاط صورة أو رفع ملف أولاً!";
+            return null;
         }
 
-        statusText.textContent = "🔍 جارِ قراءة وتوضيح الخطوط محلياً...";
-        editableText.value = "⏳ جارِ المعالجة...";
+        statusText.textContent = "⏳ جاري المعالجة بالذكاء الاصطناعي...";
 
         try {
-            // إنشاء نسخة محسنة تباينياً في الخلفية لمكتبة التعرّف فقط
-            const processedImageBlob = await new Promise((resolve) => {
-                const img = new Image();
-                img.onload = () => {
-                    const tempCanvas = document.createElement('canvas');
-                    tempCanvas.width = img.width;
-                    tempCanvas.height = img.height;
-                    const tCtx = tempCanvas.getContext('2d');
-                    tCtx.drawImage(img, 0, 0);
-                    
-                    let imgData = tCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
-                    let data = imgData.data;
-                    for (let i = 0; i < data.length; i += 4) {
-                        let avg = (data[i] * 0.3) + (data[i + 1] * 0.59) + (data[i + 2] * 0.11);
-                        let val = avg < 140 ? 0 : 255; 
-                        data[i] = val; data[i + 1] = val; data[i + 2] = val;
-                    }
-                    tCtx.putImageData(imgData, 0, 0);
-                    tempCanvas.toBlob(resolve, 'image/jpeg', 0.95);
-                };
-                img.src = URL.createObjectURL(originalBlob);
+            const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${apiKey}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    model: "llama-3.2-11b-vision-preview",
+                    messages: [
+                        {
+                            role: "user",
+                            content: [
+                                { type: "image_url", image_url: { url: currentImageBase64 } },
+                                { type: "text", text: promptText }
+                            ]
+                        }
+                    ],
+                    temperature: 0.1,
+                    max_tokens: 1024
+                })
             });
 
-            const worker = await Tesseract.createWorker('ara+eng');
-            const ret = await worker.recognize(processedImageBlob || originalBlob);
-            const text = ret.data.text.trim();
-            await worker.terminate();
-
-            if (!text) {
-                editableText.value = "";
-                statusText.textContent = "⚠️ لم يتم العثور على نص واضح. حاول تحسين الإضاءة.";
-                return;
+            if (!response.ok) {
+                const errData = await response.json();
+                throw new Error(errData.error?.message || "خطأ في الاتصال");
             }
 
-            editableText.value = text;
-            statusText.textContent = "✅ تمت القراءة بنجاح! يمكنك تعديل النص أدناه إذا أردت، ثم الضغط على حل أو ترجمة.";
+            const data = await response.json();
+            return data.choices[0].message.content;
         } catch (error) {
-            console.error(error);
-            editableText.value = "";
-            statusText.textContent = "❌ حدث خطأ أثناء تحليل الصورة.";
+            statusText.textContent = "❌ خطأ: " + error.message;
+            return null;
         }
     }
 
-    async function processAction(actionType) {
-        if (!editableText.value.trim()) {
-            await extractTextOnly();
+    async function handleOCR() {
+        const res = await callGroqVision("استخرج جميع النصوص والكلمات من هذه الصورة بدقة واكتبها كطباعة رقمية نظيفة.");
+        if (res) {
+            editableText.value = res;
+            statusText.textContent = "✅ تم استخراج النص بنجاح!";
         }
+    }
 
-        const currentText = editableText.value.trim();
-        if (!currentText) {
-            statusText.textContent = "⚠️ لا يوجد نص للعمل عليه.";
-            return;
+    async function handleTranslate() {
+        const res = await callGroqVision("استخرج النص وترجمه إلى اللغة العربية بدقة واحترافية.");
+        if (res) {
+            resultText.innerHTML = `<strong>الترجمة:</strong><br>${escapeHtml(res)}`;
+            statusText.textContent = "✅ تمت الترجمة بنجاح!";
         }
+    }
 
-        if (actionType === 'translate') {
-            statusText.textContent = "🌐 جارِ ترجمة النص...";
-            resultText.textContent = "⏳ جاري الترجمة...";
-            try {
-                const response = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(currentText)}&langpair=autodetect|ar`);
-                const data = await response.json();
-                const translatedText = data.responseData ? data.responseData.translatedText : "تعذر إتمام الترجمة.";
-
-                statusText.textContent = "✅ تمت الترجمة بنجاح.";
-                resultText.innerHTML = `<strong>الترجمة إلى العربية:</strong><br>${escapeHtml(translatedText)}`;
-            } catch (err) {
-                resultText.textContent = "❌ تعذر الاتصال بخدمة الترجمة الخارجية.";
-            }
-        } 
-        else if (actionType === 'solve') {
-            statusText.textContent = "💡 جارِ إرسال النص إلى النموذج المحلي (Ollama)...";
-            resultText.innerHTML = `<em>⏳ جاري التفكير وحل السؤال محلياً...</em>`;
-
-            try {
-                const response = await fetch('http://localhost:11434/api/generate', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        model: "phi3",
-                        prompt: `قم بحل هذا السؤال أو شرحه بالتفصيل باللغة العربية:\n\n${currentText}`,
-                        stream: false
-                    })
-                });
-
-                if (!response.ok) throw new Error("فشل الاتصال");
-                const data = await response.json();
-                statusText.textContent = "✅ تم حل السؤال بنجاح عبر الذكاء الاصطناعي المحلي!";
-                resultText.innerHTML = `<strong>💡 الإجابة والشرح المفصل:</strong><br>${escapeHtml(data.response)}`;
-            
-            } catch (err) {
-                statusText.textContent = "⚠️ خادم Ollama المحلي غير متصل";
-                resultText.innerHTML = `تأكد من تشغيل أداة Ollama على جهازك (<code>http://localhost:11434</code>) ليعمل الحل محلياً وبدون إنترنت!`;
-            }
+    async function handleSolve() {
+        const res = await callGroqVision("حل السؤال أو المسألة الموجودة في هذه الصورة واشرحها خطوة بخطوة بالعربية.");
+        if (res) {
+            resultText.innerHTML = `<strong>الحل والشرح:</strong><br>${escapeHtml(res)}`;
+            statusText.textContent = "✅ تم الحل بنجاح!";
         }
     }
 
     function escapeHtml(text) {
         return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     }
-
-    window.onload = () => {
-        switchMode('camera');
-    };
 </script>
 
 </body>
