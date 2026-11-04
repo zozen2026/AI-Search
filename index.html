@@ -293,9 +293,9 @@
         <input type="file" id="imageInput" accept="image/*">
     </label>
 
-    <!-- معاينة الصورة الملتقطة أو المرفوعة -->
+    <!-- معاينة الصورة الطبيعية الواضحة للمستخدم -->
     <div class="preview-box" id="previewBox">
-        <img id="imagePreview" alt="معاينة الصورة">
+        <img id="imagePreview" alt="معاينة الصورة الطبيعية">
     </div>
 
     <!-- الأزرار الثلاثة الفعالة -->
@@ -336,7 +336,7 @@
 
 <script>
     let videoStream = null;
-    let processedBlob = null;
+    let originalBlob = null; // الصورة الطبيعية للمعاينة وللـ OCR
 
     const cameraWrapper = document.getElementById('cameraWrapper');
     const uploadSection = document.getElementById('uploadSection');
@@ -383,13 +383,13 @@
         }
     }
 
-    // دالة آمنة لمعالجة الصورة وتجنب الأخطاء الصفرية
-    function preprocessAndSaveImage(sourceImage) {
+    // التقاط وحفظ الصورة الطبيعية للمعاينة
+    function captureAndSaveNormalImage(sourceImage) {
         let width = sourceImage.videoWidth || sourceImage.naturalWidth || sourceImage.width || 640;
         let height = sourceImage.videoHeight || sourceImage.naturalHeight || sourceImage.height || 480;
         
         if (!width || !height) {
-            statusText.textContent = "⚠️ الكاميرا لم تجهز بالكامل بعد، حاول مجدداً بعد ثانية.";
+            statusText.textContent = "⚠️ الكاميرا لم تجهز بالكامل بعد، حاول مجدداً.";
             return;
         }
 
@@ -399,31 +399,18 @@
         
         try {
             ctx.drawImage(sourceImage, 0, 0, width, height);
-
-            let imgData = ctx.getImageData(0, 0, width, height);
-            let data = imgData.data;
-            
-            for (let i = 0; i < data.length; i += 4) {
-                let avg = (data[i] * 0.3) + (data[i + 1] * 0.59) + (data[i + 2] * 0.11);
-                let val = avg < 140 ? 0 : 255; 
-                data[i] = val; 
-                data[i + 1] = val; 
-                data[i + 2] = val;
-            }
-            
-            ctx.putImageData(imgData, 0, 0);
         } catch (e) {
-            console.error("معالجة الصورة تخطت الخطأ:", e);
+            console.error(e);
         }
 
         canvasElement.toBlob((blob) => {
             if (!blob) return;
-            processedBlob = blob;
+            originalBlob = blob;
             const imageUrl = URL.createObjectURL(blob);
             imagePreview.src = imageUrl;
             previewBox.style.display = 'block';
             
-            statusText.textContent = "✅ تم التقاط الصورة بنجاح! اضغط على (توضيح الخط) لقراءتها.";
+            statusText.textContent = "✅ تم التقاط الصورة بوضوح تام! اضغط على (توضيح الخط) لقراءتها.";
             editableText.value = "";
             resultText.textContent = "النتائج ستظهر هنا...";
         }, 'image/jpeg', 0.95);
@@ -434,7 +421,7 @@
             statusText.textContent = "⚠️ الكاميرا غير متوفرة.";
             return;
         }
-        preprocessAndSaveImage(videoFeed);
+        captureAndSaveNormalImage(videoFeed);
     }
 
     imageInput.addEventListener('change', (e) => {
@@ -444,7 +431,7 @@
             reader.onload = function(event) {
                 const img = new Image();
                 img.onload = function() {
-                    preprocessAndSaveImage(img);
+                    captureAndSaveNormalImage(img);
                 }
                 img.src = event.target.result;
             }
@@ -452,9 +439,9 @@
         }
     });
 
-    // استخراج النص وقراءته عبر Tesseract
+    // استخراج النص (مع معالجة خلفية محسنة للـ OCR فقط دون تشويه صورة المعاينة)
     async function extractTextOnly() {
-        if (!processedBlob) {
+        if (!originalBlob) {
             statusText.textContent = "⚠️ تنبيه: يرجى التقاط صورة أو رفع ملف أولاً!";
             return;
         }
@@ -463,8 +450,31 @@
         editableText.value = "⏳ جارِ المعالجة...";
 
         try {
+            // إنشاء نسخة محسنة تباينياً في الخلفية لمكتبة التعرّف فقط
+            const processedImageBlob = await new Promise((resolve) => {
+                const img = new Image();
+                img.onload = () => {
+                    const tempCanvas = document.createElement('canvas');
+                    tempCanvas.width = img.width;
+                    tempCanvas.height = img.height;
+                    const tCtx = tempCanvas.getContext('2d');
+                    tCtx.drawImage(img, 0, 0);
+                    
+                    let imgData = tCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+                    let data = imgData.data;
+                    for (let i = 0; i < data.length; i += 4) {
+                        let avg = (data[i] * 0.3) + (data[i + 1] * 0.59) + (data[i + 2] * 0.11);
+                        let val = avg < 140 ? 0 : 255; 
+                        data[i] = val; data[i + 1] = val; data[i + 2] = val;
+                    }
+                    tCtx.putImageData(imgData, 0, 0);
+                    tempCanvas.toBlob(resolve, 'image/jpeg', 0.95);
+                };
+                img.src = URL.createObjectURL(originalBlob);
+            });
+
             const worker = await Tesseract.createWorker('ara+eng');
-            const ret = await worker.recognize(processedBlob);
+            const ret = await worker.recognize(processedImageBlob || originalBlob);
             const text = ret.data.text.trim();
             await worker.terminate();
 
