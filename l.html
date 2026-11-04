@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>المساعد البصري الذكي - محلي بالكامل</title>
+    <!-- مكتبة Tesseract.js لقراءة النصوص محلياً -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #ffffff;
+            --card-bg: #ffffff;
+            --text-color: #1a1a1a;
+            --border-color: #eaeaea;
+            --accent-color: #111111;
+            --accent-hover: #333333;
+            --gray-light: #f8f9fa;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            margin: 0;
+            padding: 30px 15px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 650px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+        }
+
+        h2 {
+            margin-top: 0;
+            font-size: 1.6rem;
+            font-weight: 700;
+            text-align: center;
+            color: var(--accent-color);
+            letter-spacing: -0.5px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            font-size: 0.95rem;
+            margin-bottom: 25px;
+        }
+
+        /* طرق الإدخال (كاميرا أو رفع ملف) */
+        .mode-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .mode-btn {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            background: var(--gray-light);
+            color: var(--text-color);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .mode-btn.active {
+            background: var(--accent-color);
+            color: #fff;
+            border-color: var(--accent-color);
+        }
+
+        /* قسم الكاميرا */
+        .camera-wrapper {
+            position: relative;
+            width: 100%;
+            height: 320px;
+            background: #000;
+            border-radius: 16px;
+            overflow: hidden;
+            display: none;
+            margin-bottom: 20px;
+        }
+
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* زر الالتقاط الدائري الفخم */
+        .capture-btn-container {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .circular-capture {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            border: 4px solid #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            transition: transform 0.1s ease;
+        }
+
+        .circular-capture:active {
+            transform: translateX(-50%) scale(0.92);
+        }
+
+        .inner-circle {
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            background: #fff;
+        }
+
+        /* رفع الملفات التقليدي */
+        .upload-section {
+            display: block;
+            border: 2px dashed #dcdcdc;
+            border-radius: 16px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            margin-bottom: 20px;
+            transition: 0.2s;
+            background: var(--gray-light);
+        }
+
+        .upload-section:hover {
+            border-color: var(--accent-color);
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        /* المعاينة */
+        .preview-box {
+            position: relative;
+            max-width: 100%;
+            max-height: 200px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            display: none;
+            text-align: center;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+
+        .preview-box img {
+            max-width: 100%;
+            max-height: 200px;
+            display: block;
+            margin: 0 auto;
+        }
+
+        /* أزرار العمليات الثلاثة */
+        .action-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .action-btn {
+            padding: 12px 8px;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            background: #fff;
+            color: var(--text-color);
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .action-btn:hover {
+            background: var(--gray-light);
+            border-color: var(--accent-color);
+        }
+
+        /* صندوق النصوص الموضح والقابل للتعديل */
+        .editor-section {
+            margin-bottom: 20px;
+        }
+
+        .section-label {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        textarea.text-output {
+            width: 100%;
+            background: var(--gray-light);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 15px;
+            min-height: 110px;
+            font-size: 1.05rem;
+            line-height: 1.6;
+            font-family: inherit;
+            color: var(--text-color);
+            resize: vertical;
+            box-sizing: border-box;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        textarea.text-output:focus {
+            border-color: var(--accent-color);
+            background: #fff;
+        }
+
+        /* صندوق نتائج الحل أو الترجمة */
+        .result-box {
+            background: var(--gray-light);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 15px;
+            min-height: 90px;
+            font-size: 1.05rem;
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
+
+        .status-badge {
+            font-size: 0.85rem;
+            color: #555;
+            margin-bottom: 12px;
+            font-weight: 500;
+        }
+
+        canvas {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <h2>المساعد البصري الذكي</h2>
+    <p class="subtitle">تصوير، توضيح، تعديل، وترجمة وحل بالذكاء الاصطناعي</p>
+
+    <!-- أزرار تبديل وضع الإدخال -->
+    <div class="mode-selector">
+        <button class="mode-btn active" id="cameraModeBtn" onclick="switchMode('camera')">📷 الكاميرا المباشرة</button>
+        <button class="mode-btn" id="uploadModeBtn" onclick="switchMode('upload')">📁 رفع صورة</button>
+    </div>
+
+    <!-- نافذة الكاميرا الحية -->
+    <div class="camera-wrapper" id="cameraWrapper">
+        <video id="videoFeed" autoplay playsinline></video>
+        <div class="capture-btn-container">
+            <div class="circular-capture" onclick="captureImage()" title="التقاط صورة">
+                <div class="inner-circle"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- منطقة رفع الصورة -->
+    <label class="upload-section" id="uploadSection" for="imageInput" style="display: none;">
+        <span>📁 اضغط هنا لاختيار صورة من جهازك</span>
+        <input type="file" id="imageInput" accept="image/*">
+    </label>
+
+    <!-- معاينة الصورة الملتقطة أو المرفوعة -->
+    <div class="preview-box" id="previewBox">
+        <img id="imagePreview" alt="معاينة الصورة">
+    </div>
+
+    <!-- الأزرار الثلاثة الفعالة -->
+    <div class="action-grid">
+        <button class="action-btn" id="ocrBtn" onclick="extractTextOnly()">
+            <span>🔍</span> توضيح الخط
+        </button>
+        <button class="action-btn" id="translateBtn" onclick="processAction('translate')">
+            <span>🌐</span> ترجمة النصوص
+        </button>
+        <button class="action-btn" id="solveBtn" onclick="processAction('solve')">
+            <span>💡</span> حل الأسئلة
+        </button>
+    </div>
+
+    <!-- حالة النظام -->
+    <div class="status-badge" id="statusText">جاهز. التقط صورة بالكاميرا أو ارفع ملفاً لبدء العمل.</div>
+
+    <!-- مربع النص الموضح (قابل للتعديل اليدوي مباشرة) -->
+    <div class="editor-section">
+        <div class="section-label">
+            <span>✏️ النص الموضح (يمكنك تعديله قبل الحل أو الترجمة):</span>
+        </div>
+        <textarea id="editableText" class="text-output" placeholder="النص المستخرج سيظهر هنا، ويمكنك تعديل أي حرف غير واضح مباشرة..."></textarea>
+    </div>
+
+    <!-- مربع عرض النتائج النهائية (الحل أو الترجمة) -->
+    <div class="editor-section">
+        <div class="section-label">
+            <span>📋 النتيجة النهائية (حل أو ترجمة):</span>
+        </div>
+        <div class="result-box" id="resultText">النتائج ستظهر هنا...</div>
+    </div>
+</div>
+
+<!-- مخفي لمعالجة الصور -->
+<canvas id="canvasElement"></canvas>
+
+<script>
+    let videoStream = null;
+    let processedBlob = null;
+
+    const cameraWrapper = document.getElementById('cameraWrapper');
+    const uploadSection = document.getElementById('uploadSection');
+    const videoFeed = document.getElementById('videoFeed');
+    const canvasElement = document.getElementById('canvasElement');
+    const previewBox = document.getElementById('previewBox');
+    const imagePreview = document.getElementById('imagePreview');
+    const imageInput = document.getElementById('imageInput');
+    
+    const statusText = document.getElementById('statusText');
+    const editableText = document.getElementById('editableText');
+    const resultText = document.getElementById('resultText');
+
+    function switchMode(mode) {
+        document.getElementById('cameraModeBtn').classList.toggle('active', mode === 'camera');
+        document.getElementById('uploadModeBtn').classList.toggle('active', mode === 'upload');
+
+        if (mode === 'camera') {
+            cameraWrapper.style.display = 'block';
+            uploadSection.style.display = 'none';
+            startCamera();
+        } else {
+            cameraWrapper.style.display = 'none';
+            uploadSection.style.display = 'block';
+            stopCamera();
+        }
+    }
+
+    async function startCamera() {
+        try {
+            if (videoStream) stopCamera();
+            videoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+            videoFeed.srcObject = videoStream;
+        } catch (err) {
+            statusText.textContent = "⚠️ تعذر الوصول للكاميرا. يرجى استخدام وضع (رفع صورة).";
+            switchMode('upload');
+        }
+    }
+
+    function stopCamera() {
+        if (videoStream) {
+            videoStream.getTracks().forEach(track => track.stop());
+            videoStream = null;
+        }
+    }
+
+    // دالة آمنة لمعالجة الصورة وتجنب الأخطاء الصفرية
+    function preprocessAndSaveImage(sourceImage) {
+        let width = sourceImage.videoWidth || sourceImage.naturalWidth || sourceImage.width || 640;
+        let height = sourceImage.videoHeight || sourceImage.naturalHeight || sourceImage.height || 480;
+        
+        if (!width || !height) {
+            statusText.textContent = "⚠️ الكاميرا لم تجهز بالكامل بعد، حاول مجدداً بعد ثانية.";
+            return;
+        }
+
+        const ctx = canvasElement.getContext('2d');
+        canvasElement.width = width;
+        canvasElement.height = height;
+        
+        try {
+            ctx.drawImage(sourceImage, 0, 0, width, height);
+
+            let imgData = ctx.getImageData(0, 0, width, height);
+            let data = imgData.data;
+            
+            for (let i = 0; i < data.length; i += 4) {
+                let avg = (data[i] * 0.3) + (data[i + 1] * 0.59) + (data[i + 2] * 0.11);
+                let val = avg < 140 ? 0 : 255; 
+                data[i] = val; 
+                data[i + 1] = val; 
+                data[i + 2] = val;
+            }
+            
+            ctx.putImageData(imgData, 0, 0);
+        } catch (e) {
+            console.error("معالجة الصورة تخطت الخطأ:", e);
+        }
+
+        canvasElement.toBlob((blob) => {
+            if (!blob) return;
+            processedBlob = blob;
+            const imageUrl = URL.createObjectURL(blob);
+            imagePreview.src = imageUrl;
+            previewBox.style.display = 'block';
+            
+            statusText.textContent = "✅ تم التقاط الصورة بنجاح! اضغط على (توضيح الخط) لقراءتها.";
+            editableText.value = "";
+            resultText.textContent = "النتائج ستظهر هنا...";
+        }, 'image/jpeg', 0.95);
+    }
+
+    function captureImage() {
+        if (!videoStream) {
+            statusText.textContent = "⚠️ الكاميرا غير متوفرة.";
+            return;
+        }
+        preprocessAndSaveImage(videoFeed);
+    }
+
+    imageInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const img = new Image();
+                img.onload = function() {
+                    preprocessAndSaveImage(img);
+                }
+                img.src = event.target.result;
+            }
+            reader.readAsDataURL(file);
+        }
+    });
+
+    // استخراج النص وقراءته عبر Tesseract
+    async function extractTextOnly() {
+        if (!processedBlob) {
+            statusText.textContent = "⚠️ تنبيه: يرجى التقاط صورة أو رفع ملف أولاً!";
+            return;
+        }
+
+        statusText.textContent = "🔍 جارِ قراءة وتوضيح الخطوط محلياً...";
+        editableText.value = "⏳ جارِ المعالجة...";
+
+        try {
+            const worker = await Tesseract.createWorker('ara+eng');
+            const ret = await worker.recognize(processedBlob);
+            const text = ret.data.text.trim();
+            await worker.terminate();
+
+            if (!text) {
+                editableText.value = "";
+                statusText.textContent = "⚠️ لم يتم العثور على نص واضح. حاول تحسين الإضاءة.";
+                return;
+            }
+
+            editableText.value = text;
+            statusText.textContent = "✅ تمت القراءة بنجاح! يمكنك تعديل النص أدناه إذا أردت، ثم الضغط على حل أو ترجمة.";
+        } catch (error) {
+            console.error(error);
+            editableText.value = "";
+            statusText.textContent = "❌ حدث خطأ أثناء تحليل الصورة.";
+        }
+    }
+
+    async function processAction(actionType) {
+        if (!editableText.value.trim()) {
+            await extractTextOnly();
+        }
+
+        const currentText = editableText.value.trim();
+        if (!currentText) {
+            statusText.textContent = "⚠️ لا يوجد نص للعمل عليه.";
+            return;
+        }
+
+        if (actionType === 'translate') {
+            statusText.textContent = "🌐 جارِ ترجمة النص...";
+            resultText.textContent = "⏳ جاري الترجمة...";
+            try {
+                const response = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(currentText)}&langpair=autodetect|ar`);
+                const data = await response.json();
+                const translatedText = data.responseData ? data.responseData.translatedText : "تعذر إتمام الترجمة.";
+
+                statusText.textContent = "✅ تمت الترجمة بنجاح.";
+                resultText.innerHTML = `<strong>الترجمة إلى العربية:</strong><br>${escapeHtml(translatedText)}`;
+            } catch (err) {
+                resultText.textContent = "❌ تعذر الاتصال بخدمة الترجمة الخارجية.";
+            }
+        } 
+        else if (actionType === 'solve') {
+            statusText.textContent = "💡 جارِ إرسال النص إلى النموذج المحلي (Ollama)...";
+            resultText.innerHTML = `<em>⏳ جاري التفكير وحل السؤال محلياً...</em>`;
+
+            try {
+                const response = await fetch('http://localhost:11434/api/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        model: "phi3",
+                        prompt: `قم بحل هذا السؤال أو شرحه بالتفصيل باللغة العربية:\n\n${currentText}`,
+                        stream: false
+                    })
+                });
+
+                if (!response.ok) throw new Error("فشل الاتصال");
+                const data = await response.json();
+                statusText.textContent = "✅ تم حل السؤال بنجاح عبر الذكاء الاصطناعي المحلي!";
+                resultText.innerHTML = `<strong>💡 الإجابة والشرح المفصل:</strong><br>${escapeHtml(data.response)}`;
+            
+            } catch (err) {
+                statusText.textContent = "⚠️ خادم Ollama المحلي غير متصل";
+                resultText.innerHTML = `تأكد من تشغيل أداة Ollama على جهازك (<code>http://localhost:11434</code>) ليعمل الحل محلياً وبدون إنترنت!`;
+            }
+        }
+    }
+
+    function escapeHtml(text) {
+        return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    window.onload = () => {
+        switchMode('camera');
+    };
+</script>
+
+</body>
+</html>
